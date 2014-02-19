@@ -1,0 +1,10 @@
+﻿CACHE MANIFEST
+
+# 캐시할 파일
+MultiBall.html
+
+# 항상 네트워크에서 요청
+NETWORK
+
+# 리소스를 호출할 수 없는 경우
+FALLBACK

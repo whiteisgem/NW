@@ -1,0 +1,310 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title></title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background : black;
+        }
+        table {
+            width: 100%;
+        }
+    </style>
+    <script>
+        var canvas;
+        var ctx;
+
+        var WIDTH;
+        var HEIGHT;
+
+        var RADIAN = Math.PI / 180;
+
+        var mouseX, mouseY;
+
+        window.onload = function () {
+            canvas = document.getElementById("canvas");
+            ctx = canvas.getContext("2d");
+
+            WIDTH = window.innerWidth - 50;
+            HEIGHT = window.innerHeight - 100;
+
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+
+            // 볼 객체
+            function Ball(_posX, _posY, _radius, _angle, _velocity, _r, _g, _b, _a) {
+                this.pos = { X: _posX, Y: _posY };
+                this.radius = _radius;
+                this.angle = _angle;
+                this.velocity = _velocity;
+                this.color = {R:_r, G:_g, B:_b, A:_a};
+            }
+
+            // 볼 그리기
+            Ball.prototype.drawBall = function () {
+                //ctx.fillStyle = "rgba(" + this.color.R + "," + this.color.G + "," + this.color.B + "," + this.color.A + ")";
+                var gradient = ctx.createRadialGradient(this.pos.X, this.pos.Y, 0, this.pos.X, this.pos.Y, this.radius)
+                gradient.addColorStop(0, "white");
+                gradient.addColorStop(0.4, "white");
+                gradient.addColorStop(0.4, "rgba(" + this.color.R + "," + this.color.G + "," + this.color.B + "," + this.color.A + ")");
+                gradient.addColorStop(1, "black");
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.pos.X, this.pos.Y, this.radius, 0, 360 * RADIAN, true);
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            //  볼 다음 위치
+            Ball.prototype.getNextPos = function () {
+                var tempX = Math.cos(this.angle * RADIAN);
+                var tempY = Math.sin(this.angle * RADIAN);
+
+                return { X: this.pos.X + (tempX * this.velocity), Y: this.pos.Y + (tempY * this.velocity) };
+            }
+
+            var balls = [];
+
+            // 
+            function intitBall() {
+                var posVal = document.getElementById("startPos");           // 볼 시작 위치
+                var totalBall = document.getElementById("totalBall");       // 기준 볼수
+                var creatBall = document.getElementById("creatBall");       // 생성 볼수
+                var boundBall = document.getElementById("chkBoundBall");    // 바운드
+
+                var minSize = document.getElementById("minSize");    // 최소크기
+                var maxSize = document.getElementById("maxSize");    // 최대크기
+                var minVelo = document.getElementById("minVelo");    // 최소속도
+                var maxVelo = document.getElementById("maxVelo");    // 최대속도
+
+                // 볼 시작위치
+                var startPosition = [
+                    { X: Math.random() * WIDTH,     Y: Math.random() * HEIGHT },             // 랜덤
+                    { X: 0,         Y: 0 },                 // 좌상
+                    { X: WIDTH / 2, Y: 0 },                 // 중상
+                    { X: WIDTH,     Y: 0 },                 // 우상
+                    { X: 0,         Y: HEIGHT / 2 },        // 좌중
+                    { X: WIDTH / 2, Y: HEIGHT / 2 },        // 중간
+                    { X: WIDTH,     Y: HEIGHT / 2 },        // 우중
+                    { X: 0,         Y: HEIGHT },            // 좌하
+                    { X: WIDTH / 2, Y: HEIGHT },            // 중하
+                    { X: WIDTH,     Y: HEIGHT },            // 우하
+                    { X: 0,     Y: 0 }             // 마우스
+                ];
+                
+                // 공을 생성하여 배열에 추가
+                if (balls.length < parseInt(totalBall.value)) {  // 화면에 보일 공의 갯수
+                    var posX, posY;
+
+                    switch (posVal.selectedIndex) {
+                        case 10:
+                            posX = mouseX;
+                            posY = mouseY;
+                            break;
+                        default:
+                            posX = startPosition[posVal.options[posVal.selectedIndex].value].X;
+                            posY = startPosition[posVal.options[posVal.selectedIndex].value].Y;
+                            break;
+                    }
+
+                    for (var i = 0; i < parseInt(creatBall.value); i++) {   // 한 번에 생성될 공의 갯수
+                        var ball = new Ball(
+                            posX, //startPosition[posVal.options[posVal.selectedIndex].value].X,        // pos.X
+                            posY, //startPosition[posVal.options[posVal.selectedIndex].value].Y,        // pos.Y
+                            Math.random() * parseInt(maxSize.value) + parseInt(minSize.value),            // radius
+                            Math.random() * 360,                // angle
+                            Math.random() * parseInt(maxVelo.value) + parseInt(minVelo.value),              // velocity
+                            parseInt(Math.random() * 255),      // color.R
+                            parseInt(Math.random() * 255),      // color.G
+                            parseInt(Math.random() * 255),      // color.B
+                            Math.random()                       // color.A
+                        );
+
+                        balls.push(ball);
+                    }
+
+                    ball.drawBall();
+                }
+
+                // 범위에 도달한 공에 대한 처리
+                for (var i = 0; i < balls.length; i++) {
+                    if (boundBall.checked) {
+                        // 바운드
+                        if (balls[i].pos.X - balls[i].radius <= 0 || balls[i].pos.X + balls[i].radius >= WIDTH) {
+                            balls[i].angle = 180 - balls[i].angle;
+
+                            // 범위에 걸린 볼에 대한 처리
+                            if (balls[i].pos.X - balls[i].radius < 0) {
+                                balls[i].pos.X = balls[i].radius;
+                            } else if (balls[i].pos.X + balls[i].radius > WIDTH) {
+                                balls[i].pos.X = WIDTH - balls[i].radius;
+                            }
+
+                        } else if (balls[i].pos.Y - balls[i].radius <= 0 || balls[i].pos.Y + balls[i].radius >= HEIGHT) {
+                            balls[i].angle = 360 - balls[i].angle;
+
+                            // 범위에 걸린 볼에 대한 처리
+                            if (balls[i].pos.Y - balls[i].radius < 0) {
+                                balls[i].pos.Y = balls[i].radius;
+                            } else if (balls[i].pos.Y + balls[i].radius > HEIGHT) {
+                                balls[i].pos.Y = HEIGHT - balls[i].radius;
+                            }
+                        }
+                    } else {
+                        // 배열에서 삭제
+                        if (balls[i].pos.X + balls[i].radius < 0 || balls[i].pos.X - balls[i].radius > WIDTH) {
+                            balls.splice(i, 1);
+                        } else if (balls[i].pos.Y + balls[i].radius < 0 || balls[i].pos.Y - balls[i].radius > HEIGHT) {
+                            balls.splice(i, 1);
+                        }
+                    }
+                }
+
+                drawNotice();
+            }
+
+            function drawNotice() {
+                getBallCnt();
+                getCreateBallCnt();
+                getMinSize();
+                getMaxSize();
+                getMinVelo();
+                getMaxVelo();
+            }
+
+            // 애니메이션 실행
+            function animate() {
+                //canvas.width = canvas.width;  // 불꽃 효과를 적용할 경우 사용하지 않음
+
+                intitBall();
+
+                // 불꽃 효과
+                ctx.globalCompositeOperation = "source-over";
+
+                ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                ctx.globalCompositeOperation = "lighter";
+
+                for (var i = 0; i < balls.length; i++) {
+                    balls[i].drawBall();
+                    balls[i].pos = balls[i].getNextPos();
+
+                    balls[i].color.A = balls[i].color.A - 0.1;
+                }
+            }
+
+            setInterval(animate, 33);
+        }
+
+        window.onresize = function () {
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
+
+            canvas.width = WIDTH =  window.innerWidth - 50;
+            canvas.height = HEIGHT = window.innerHeight - 100;
+        }
+
+        window.onmousemove = function (evt) {
+            mouseX = evt.pageX - canvas.offsetLeft;
+            mouseY = evt.pageY - canvas.offsetTop;
+        }
+
+        function getBallCnt() {     // 기준볼수
+            var totalBall = document.getElementById("totalBall");
+            var ballCnt = document.getElementById("ballCnt");
+            ballCnt.innerText = totalBall.value;
+        }
+        function getCreateBallCnt() {   // 생성볼수
+            var createBall = document.getElementById("creatBall");
+            var createBallCnt = document.getElementById("createBallCnt");
+            createBallCnt.innerText = createBall.value;
+        }
+
+        function getMinSize() {     // 최소크기
+            var minSize = document.getElementById("minSize");
+            var lMinSize = document.getElementById("lMinSize");
+            lMinSize.innerText = minSize.value;
+        }
+        function getMaxSize() {     // 최대크기
+            var maxSize = document.getElementById("maxSize");
+            var lMaxSize = document.getElementById("lMaxSize");
+            lMaxSize.innerText = maxSize.value;
+        }
+        function getMinVelo() {     // 최소속도
+            var minVelo = document.getElementById("minVelo");
+            var lMinVelo = document.getElementById("lMinVelo");
+            lMinVelo.innerText = minVelo.value;
+        }
+        function getMaxVelo() {     // 최대속도
+            var maxVelo = document.getElementById("maxVelo");
+            var lMaxVelo = document.getElementById("lMaxVelo");
+            lMaxVelo.innerText = maxVelo.value;
+        }
+    </script>
+
+</head>
+<body>
+    <table>
+        <tr>
+            <td>
+                볼 시작 위치
+                <select id="startPos">
+                    <option value="0" selected="selected">랜덤</option>
+                    <option value="1">좌상</option>
+                    <option value="2">중상</option>
+                    <option value="3">우상</option>
+                    <option value="4">좌중</option>
+                    <option value="5">중간</option>
+                    <option value="6">우중</option>
+                    <option value="7">좌하</option>
+                    <option value="8">중하</option>
+                    <option value="9">우하</option>
+                    <option value="10">마우스</option>
+                </select>
+            </td>
+            <td>
+                바운드
+                <input type="checkbox" id="chkBoundBall" />
+            </td>
+            <td>
+                기준볼수 : 
+                <span id="ballCnt"></span>
+                <input type="range" id="totalBall" min="1" max="1000" value="30" onchange="getBallCnt()" title="기준볼수" />
+            </td>
+            <td>
+                생성볼수 : 
+                <span id="createBallCnt"></span>
+                <input type="range" id="creatBall" min="1" max="100" value="10" onchange="getCreateBallCnt()" title="생성볼수" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                최소크기 : 
+                <span id="lMinSize"></span>
+                <input type="range" id="minSize" min="1" max="100" value="5" onchange="getMinSize()" title="최소크기" />
+            </td>
+            <td>
+                최대크기 : 
+                <span id="lMaxSize"></span>
+                <input type="range" id="maxSize" min="1" max="100" value="10" onchange="getMaxSize()" title="최대크기" />
+            </td>
+            <td>
+                최소속도 : 
+                <span id="lMinVelo"></span>
+                <input type="range" id="minVelo" min="1" max="100" value="2" onchange="getMinVelo()" title="최소속도" />
+            </td>
+            <td>
+                최대속도 : 
+                <span id="lMaxVelo"></span>
+                <input type="range" id="maxVelo" min="1" max="100" value="5" onchange="getMaxVelo()" title="최대속도" />
+            </td>
+        </tr>
+    </table>
+
+    <canvas id="canvas"></canvas>
+</body>
+</html>
+ 
